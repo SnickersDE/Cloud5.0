@@ -18,9 +18,15 @@
   margin: 0;
   min-height: 100svh;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   border-inline: 1px solid var(--line);
   background: var(--paper);
+}
+
+.top-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 80;
 }
 
 .top-header {
@@ -28,9 +34,9 @@
   overflow: visible;
   background: #050507;
   color: var(--white);
-  padding: calc(1.1rem + 0.5cm) 1.3rem calc(1rem + 0.5cm);
+  padding: 1.1rem 1.3rem 1rem;
   border-bottom: 1px solid rgba(31, 91, 255, 0.38);
-  z-index: 50;
+  z-index: 81;
 }
 
 .top-header::after {
@@ -50,7 +56,21 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: 3.1rem;
   gap: 1rem;
+}
+
+.header-angled-strip {
+  position: absolute;
+  left: -1.2rem;
+  top: 50%;
+  width: clamp(14rem, 33vw, 21rem);
+  height: 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(0.72rem) rotate(-45deg);
+  transform-origin: left center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .brand {
@@ -59,11 +79,13 @@
   text-decoration: none;
   line-height: 0;
   margin-left: 0.1rem;
+  position: relative;
+  z-index: 3;
 }
 
 .brand-logo {
   display: block;
-  width: clamp(4.8rem, 9.6vw, 6.8rem);
+  width: clamp(3.9rem, 7.8vw, 5.4rem);
   height: auto;
   object-fit: contain;
   opacity: 0.94;
@@ -93,6 +115,8 @@
   font-size: 1rem;
   background: transparent;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 3;
 }
 
 .entrance-link:hover {
@@ -101,8 +125,8 @@
 
 .entrance-icon {
   display: block;
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 2.55rem;
+  height: 2.55rem;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
@@ -133,7 +157,7 @@
   background: #050507;
   backdrop-filter: none;
   position: relative;
-  z-index: 48;
+  z-index: 82;
 }
 
 .nav-group {
@@ -1353,7 +1377,7 @@
 
 @media (max-width: 700px) {
   .top-header {
-    padding: 0.9rem;
+    padding: 0.62rem 0.8rem;
   }
 
   .header-main {
@@ -1369,17 +1393,24 @@
   }
 
   .brand-logo {
-    width: clamp(3.8rem, 12vw, 5.2rem);
+    width: clamp(3.2rem, 10vw, 4.4rem);
   }
 
   .entrance-link {
     margin-left: auto;
-    padding: 0.35rem 0.45rem;
+    padding: 0.28rem 0.38rem;
   }
 
   .entrance-icon {
-    width: 1.95rem;
-    height: 1.95rem;
+    width: 1.62rem;
+    height: 1.62rem;
+  }
+
+  .header-angled-strip {
+    left: -1rem;
+    width: clamp(9.8rem, 45vw, 13rem);
+    height: 0.72rem;
+    transform: translateY(0.55rem) rotate(-45deg);
   }
 
   .main-nav {

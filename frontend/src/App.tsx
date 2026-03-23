@@ -2154,43 +2154,46 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="top-header">
-        <div className="header-main">
-          <NavLink to="/start" className="brand" title="Zur Startseite">
-            <img
-              src={`${import.meta.env.BASE_URL}Logo.png`}
-              alt="StudyCloud Logo"
-              className="brand-logo"
-            />
-          </NavLink>
-          <NavLink to="/mein-konto" className="entrance-link" title="Eingang zu Mein Konto">
-            <img src={entranceIcon} alt="Eingang" className="entrance-icon" />
-          </NavLink>
-        </div>
-      </header>
-
-      <nav className="main-nav">
-        {dropdownGroups.map((group) => (
-          <div
-            key={group.label}
-            className={`nav-group ${
-              group.entries.some((entry) => location.pathname.startsWith(entry.to)) ? 'active' : ''
-            }`}
-          >
-            <span className="nav-group-label">{group.label}</span>
-            <div className="nav-dropdown">
-              {group.entries.map((entry) => (
-                <NavLink key={entry.to} to={entry.to} className="nav-dropdown-link">
-                  <span className="nav-dropdown-icon" aria-hidden="true">
-                    {entry.icon}
-                  </span>
-                  <span className="nav-dropdown-text">{entry.label}</span>
-                </NavLink>
-              ))}
-            </div>
+      <div className="top-chrome">
+        <header className="top-header">
+          <div className="header-main">
+            <NavLink to="/start" className="brand" title="Zur Startseite">
+              <img
+                src={`${import.meta.env.BASE_URL}Logo.png`}
+                alt="StudyCloud Logo"
+                className="brand-logo"
+              />
+            </NavLink>
+            <span className="header-angled-strip" aria-hidden="true" />
+            <NavLink to="/mein-konto" className="entrance-link" title="Eingang zu Mein Konto">
+              <img src={entranceIcon} alt="Eingang" className="entrance-icon" />
+            </NavLink>
           </div>
-        ))}
-      </nav>
+        </header>
+
+        <nav className="main-nav">
+          {dropdownGroups.map((group) => (
+            <div
+              key={group.label}
+              className={`nav-group ${
+                group.entries.some((entry) => location.pathname.startsWith(entry.to)) ? 'active' : ''
+              }`}
+            >
+              <span className="nav-group-label">{group.label}</span>
+              <div className="nav-dropdown">
+                {group.entries.map((entry) => (
+                  <NavLink key={entry.to} to={entry.to} className="nav-dropdown-link">
+                    <span className="nav-dropdown-icon" aria-hidden="true">
+                      {entry.icon}
+                    </span>
+                    <span className="nav-dropdown-text">{entry.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </div>
 
       <main className="content-area">
         {location.pathname !== '/zusammenfassungen' &&
