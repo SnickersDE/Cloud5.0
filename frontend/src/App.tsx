@@ -672,11 +672,13 @@ function HeroLoopVideo() {
     }
   }, [])
 
+  const videoSrc = `${import.meta.env.BASE_URL}Hero.mp4`
+
   return (
     <video
       ref={videoRef}
       className="hero-video"
-      src="/Hero.mp4"
+      src={videoSrc}
       muted
       playsInline
       preload="auto"
