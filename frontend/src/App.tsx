@@ -86,54 +86,103 @@ type GameEntry = {
   mode: 'iframe' | 'component'
 }
 
-const pages: Page[] = [
+type NavigationEntry = {
+  to: string
+  icon: string
+  label: string
+}
+
+type NavigationGroup = {
+  label: string
+  entries: NavigationEntry[]
+}
+
+const dropdownGroups: NavigationGroup[] = [
   {
-    slug: 'start',
-    label: 'Start',
-    highlight: 'HOME',
-    fallbackText: 'Hier startet dein personalisierter Lernbereich.',
+    label: 'Funktionen',
+    entries: [
+      { to: '/zusammenfassungen', icon: '🧾', label: 'Zusammenfassungen' },
+      { to: '/karteikarten', icon: '🗂️', label: 'Karteikarten' },
+      { to: '/quiz', icon: '❓', label: 'Quiz' },
+    ],
   },
   {
-    slug: 'zusammenfassungen',
-    label: 'Zusammenfassungen',
-    highlight: 'KOMPAKT',
-    fallbackText: 'Hier entsteht der Bereich für kurze, klare Lernzusammenfassungen.',
-  },
-  {
-    slug: 'karteikarten',
-    label: 'Karteikarten',
-    highlight: 'SCHNELL',
-    fallbackText: 'Hier entstehen smarte Karteikarten zum Wiederholen und Festigen.',
-  },
-  {
-    slug: 'spiele',
     label: 'Spiele',
-    highlight: 'PLAY',
-    fallbackText: 'Hier findest du deine Lernspiele und schnellen Trainingsmodi.',
+    entries: [
+      { to: '/spiele/pulse', icon: '🫀', label: 'Pulse Game' },
+      { to: '/spiele/realm-builder', icon: '🏰', label: 'RealmBuilder V5' },
+      { to: '/spiele/typing-arena', icon: '⌨️', label: 'Typing Arena Preview' },
+    ],
   },
+  {
+    label: 'Kontoverwaltung',
+    entries: [
+      { to: '/mein-konto/anmelden', icon: '🔐', label: 'Anmelden' },
+      { to: '/mein-konto/registrieren', icon: '📝', label: 'Registrieren' },
+      { to: '/support-kontakt', icon: '💬', label: 'Support kontaktieren' },
+      { to: '/impressum', icon: '⚖️', label: 'Impressum' },
+      { to: '/datenschutz', icon: '🛡️', label: 'Datenschutz' },
+    ],
+  },
+  {
+    label: 'Vernetzen',
+    entries: [
+      { to: '/chat-forum', icon: '💭', label: 'Chat-Forum' },
+      { to: '/forum-verwalten', icon: '🛠️', label: 'Forum verwalten' },
+      { to: '/meine-gruppen', icon: '👥', label: 'Meine Gruppen' },
+      { to: '/gruppen-verwalten', icon: '🧭', label: 'Gruppen verwalten' },
+    ],
+  },
+]
+
+const dropdownPlaceholderPages: Page[] = [
   {
     slug: 'quiz',
     label: 'Quiz',
-    highlight: 'INTENSIV',
+    highlight: 'QUIZ',
     fallbackText: 'Hier steht später dein Quiz-Bereich mit direktem Feedback.',
   },
   {
-    slug: 'chat',
-    label: 'Chat',
-    highlight: 'LIVE',
-    fallbackText: 'Hier wird der Chat für Fragen, Lernhilfe und Austausch eingebaut.',
+    slug: 'support-kontakt',
+    label: 'Support kontaktieren',
+    highlight: 'SUPPORT',
+    fallbackText: 'Hier kannst du künftig Support-Anfragen und Hilfetickets einreichen.',
   },
   {
-    slug: 'gruppen',
-    label: 'Gruppen',
-    highlight: 'TEAM',
-    fallbackText: 'Hier kommt dein Bereich für Gruppenräume und gemeinsame Sessions.',
+    slug: 'impressum',
+    label: 'Impressum',
+    highlight: 'LEGAL',
+    fallbackText: 'Hier steht das Impressum mit allen rechtlich erforderlichen Angaben.',
   },
   {
-    slug: 'mein-konto',
-    label: 'Mein Konto',
-    highlight: 'PERSÖNLICH',
-    fallbackText: 'Hier verwaltest du zukünftig Profil, Fortschritt und Einstellungen.',
+    slug: 'datenschutz',
+    label: 'Datenschutz',
+    highlight: 'PRIVACY',
+    fallbackText: 'Hier findest du die Informationen zum Datenschutz der Plattform.',
+  },
+  {
+    slug: 'chat-forum',
+    label: 'Chat-Forum',
+    highlight: 'FORUM',
+    fallbackText: 'Hier entsteht der Austauschbereich für Fragen und Diskussionen.',
+  },
+  {
+    slug: 'forum-verwalten',
+    label: 'Forum verwalten',
+    highlight: 'MOD',
+    fallbackText: 'Hier steuerst du Moderation, Bereiche und Forumseinstellungen.',
+  },
+  {
+    slug: 'meine-gruppen',
+    label: 'Meine Gruppen',
+    highlight: 'GRUPPEN',
+    fallbackText: 'Hier siehst und verwaltest du deine aktiven Lerngruppen.',
+  },
+  {
+    slug: 'gruppen-verwalten',
+    label: 'Gruppen verwalten',
+    highlight: 'ADMIN',
+    fallbackText: 'Hier pflegst du Gruppenrechte, Regeln und Mitgliedschaften.',
   },
 ]
 
@@ -1323,8 +1372,7 @@ function FlashcardsPage() {
   )
 }
 
-function SpielePage() {
-  const [activeGameId, setActiveGameId] = useState<string | null>(null)
+function SpielePage({ activeGameId }: { activeGameId?: string }) {
   const navigate = useNavigate()
 
   const activeGame = useMemo(
@@ -1340,7 +1388,7 @@ function SpielePage() {
       return (
         <iframe
           title="Pulse Game"
-          src="/games/pulse-game.html"
+          src={`${import.meta.env.BASE_URL}games/pulse-game.html`}
           className="game-fullscreen-frame"
         />
       )
@@ -1366,8 +1414,7 @@ function SpielePage() {
           <p className="module-list-main">{activeGame.title}</p>
           <CloseIconButton
             onClick={() => {
-              setActiveGameId(null)
-              navigate('/start')
+              navigate('/spiele')
             }}
           />
         </div>
@@ -1394,7 +1441,7 @@ function SpielePage() {
               <button
                 type="button"
                 className="module-icon-button"
-                onClick={() => setActiveGameId(game.id)}
+                onClick={() => navigate(`/spiele/${game.id}`)}
                 aria-label={`${game.title} spielen`}
                 title="Play"
               >
@@ -2155,11 +2202,13 @@ function App() {
     <div className="app-shell">
       <header className="top-header">
         <div className="header-main">
-          <div>
-            <NavLink to="/start" className="brand">
-              StudyCloud
-            </NavLink>
-          </div>
+          <NavLink to="/start" className="brand" title="Zur Startseite">
+            <img
+              src={`${import.meta.env.BASE_URL}Logo.png`}
+              alt="StudyCloud Logo"
+              className="brand-logo"
+            />
+          </NavLink>
           <NavLink to="/mein-konto" className="entrance-link" title="Eingang zu Mein Konto">
             <img src={entranceIcon} alt="Eingang" className="entrance-icon" />
           </NavLink>
@@ -2167,10 +2216,25 @@ function App() {
       </header>
 
       <nav className="main-nav">
-        {pages.map((page) => (
-          <NavLink key={page.slug} to={`/${page.slug}`} className="nav-link">
-            {page.label}
-          </NavLink>
+        {dropdownGroups.map((group) => (
+          <div
+            key={group.label}
+            className={`nav-group ${
+              group.entries.some((entry) => location.pathname.startsWith(entry.to)) ? 'active' : ''
+            }`}
+          >
+            <span className="nav-group-label">{group.label}</span>
+            <div className="nav-dropdown">
+              {group.entries.map((entry) => (
+                <NavLink key={entry.to} to={entry.to} className="nav-dropdown-link">
+                  <span className="nav-dropdown-icon" aria-hidden="true">
+                    {entry.icon}
+                  </span>
+                  <span className="nav-dropdown-text">{entry.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -2190,25 +2254,21 @@ function App() {
           <Route path="/zusammenfassungen" element={<SummariesPage />} />
           <Route path="/karteikarten" element={<FlashcardsPage />} />
           <Route path="/spiele" element={<SpielePage />} />
+          <Route path="/spiele/pulse" element={<SpielePage activeGameId="pulse" />} />
+          <Route path="/spiele/realm-builder" element={<SpielePage activeGameId="realm-builder" />} />
+          <Route path="/spiele/typing-arena" element={<SpielePage activeGameId="typing-arena" />} />
           <Route path="/mein-konto" element={<AccountPage section={sectionMap['mein-konto']} />} />
           <Route path="/mein-konto/anmelden" element={<AuthPage mode="anmelden" />} />
           <Route path="/mein-konto/registrieren" element={<AuthPage mode="registrieren" />} />
-          {pages
-            .filter(
-              (page) =>
-                page.slug !== 'mein-konto' &&
-                page.slug !== 'start' &&
-                page.slug !== 'zusammenfassungen' &&
-                page.slug !== 'karteikarten' &&
-                page.slug !== 'spiele',
-            )
-            .map((page) => (
+          <Route path="/chat" element={<Navigate to="/chat-forum" replace />} />
+          <Route path="/gruppen" element={<Navigate to="/meine-gruppen" replace />} />
+          {dropdownPlaceholderPages.map((page) => (
             <Route
               key={page.slug}
               path={`/${page.slug}`}
               element={<PlaceholderPage page={page} section={sectionMap[page.slug]} />}
             />
-            ))}
+          ))}
         </Routes>
       </main>
     </div>
