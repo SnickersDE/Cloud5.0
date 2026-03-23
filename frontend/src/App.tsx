@@ -667,7 +667,7 @@ function HeroLoopVideo() {
     }
 
     video.playbackRate = 0.5
-    void video.play()
+    video.play().catch(() => undefined)
 
     return () => {
       video.pause()
@@ -2164,7 +2164,6 @@ function App() {
                 className="brand-logo"
               />
             </NavLink>
-            <span className="header-angled-strip" aria-hidden="true" />
             <nav className="main-nav">
               {dropdownGroups.map((group) => (
                 <div

@@ -26,14 +26,14 @@
 .top-chrome {
   position: sticky;
   top: 0;
-  z-index: 80;
+  z-index: 220;
   overflow-x: clip;
+  overflow-y: visible;
 }
 
 .top-header {
   position: relative;
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: visible;
   background: #050507;
   color: var(--white);
   padding: 0.2rem 0.7rem;
@@ -91,47 +91,36 @@
   z-index: 2;
 }
 
-.header-angled-strip {
-  position: absolute;
-  left: -2.8rem;
-  top: 50%;
-  width: clamp(220rem, 360vw, 340rem);
-  height: 20rem;
-  background: rgba(255, 255, 255, 0.95);
-  transform: translateY(2.2rem) rotate(-45deg);
-  transform-origin: left center;
-  pointer-events: none;
-  z-index: 0;
-}
-
 .brand {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
   line-height: 0;
-  margin-left: 0.1rem;
+  margin-left: 1cm;
   position: relative;
   z-index: 3;
 }
 
+.brand::before {
+  content: none;
+}
+
 .brand-logo {
   display: block;
-  width: clamp(2.6rem, 5.2vw, 3.4rem);
+  width: clamp(3.9rem, 7.8vw, 5.1rem);
   height: auto;
   object-fit: contain;
   opacity: 0.94;
-  mix-blend-mode: screen;
-  filter: saturate(1.22) brightness(1.08) contrast(1.08)
-    drop-shadow(0 0 0.35rem rgba(116, 203, 255, 0.34))
-    drop-shadow(0 0 0.75rem rgba(55, 128, 255, 0.26));
-  transition: filter 0.25s ease, opacity 0.25s ease;
+  mix-blend-mode: normal;
+  filter: none;
+  transition: opacity 0.25s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .brand:hover .brand-logo {
   opacity: 1;
-  filter: saturate(1.28) brightness(1.12) contrast(1.1)
-    drop-shadow(0 0 0.45rem rgba(130, 214, 255, 0.5))
-    drop-shadow(0 0 0.9rem rgba(72, 153, 255, 0.34));
+  filter: none;
 }
 
 .entrance-link {
@@ -148,6 +137,7 @@
   transition: all 0.2s ease;
   position: relative;
   z-index: 3;
+  margin-left: -2cm;
 }
 
 .entrance-link:hover {
@@ -156,8 +146,8 @@
 
 .entrance-icon {
   display: block;
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 2.18rem;
+  height: 2.18rem;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
@@ -181,25 +171,25 @@
   justify-content: center;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 0.4rem;
+  gap: 0.6rem;
   padding: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   border-bottom: none;
   background: transparent;
   backdrop-filter: none;
   position: relative;
-  z-index: 82;
+  z-index: 230;
   flex: 1;
   min-width: 0;
-  margin-inline: 0.3rem;
+  margin-inline: 0.25rem;
 }
 
 .nav-group {
   position: relative;
   display: inline-flex;
   justify-content: center;
-  padding-bottom: 0.35rem;
+  padding-bottom: 0.25rem;
+  flex: 0 0 auto;
 }
 
 .nav-group::after {
@@ -215,7 +205,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 6.2rem;
+  min-width: 0;
   text-align: center;
   color: rgba(244, 248, 255, 0.68);
   border: none;
@@ -225,8 +215,10 @@
   text-transform: uppercase;
   white-space: nowrap;
   letter-spacing: 0.038em;
-  font-size: 0.69rem;
-  padding: 0.26rem 0.45rem 0.3rem;
+  font-size: 0.62rem;
+  padding: 0.18rem 0.32rem 0.2rem;
+  line-height: 1;
+  height: 1.2rem;
   transition: all 0.25s ease;
   position: relative;
 }
@@ -271,7 +263,7 @@
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease;
-  z-index: 30;
+  z-index: 500;
 }
 
 .nav-group:hover .nav-dropdown,
@@ -1427,34 +1419,27 @@
   }
 
   .brand {
-    margin-left: 0;
+    margin-left: 1cm;
   }
 
   .brand-logo {
-    width: clamp(2.2rem, 7vw, 2.8rem);
+    width: clamp(3.3rem, 10.5vw, 4.2rem);
   }
 
   .entrance-link {
     margin-left: auto;
     padding: 0.2rem 0.24rem;
+    margin-left: -2cm;
   }
 
   .entrance-icon {
-    width: 1.2rem;
-    height: 1.2rem;
-  }
-
-  .header-angled-strip {
-    left: -1.4rem;
-    width: clamp(160rem, 300vw, 260rem);
-    height: 14rem;
-    transform: translateY(2rem) rotate(-45deg);
+    width: 1.8rem;
+    height: 1.8rem;
   }
 
   .main-nav {
     padding: 0.55rem 0.7rem;
-    gap: 0.55rem;
-    scroll-padding-inline: 0.7rem;
+    gap: 1.1rem;
     justify-content: center;
   }
 
