@@ -30,6 +30,7 @@ export type ModuleListItem = {
 
 export type FlashcardCardInput = {
   id?: string;
+  title?: string;
   front: string;
   back: string;
 };
@@ -50,6 +51,7 @@ export type FlashcardDeckListItem = {
   cardCount: number;
   cards: {
     id: string;
+    title: string;
     front: string;
     back: string;
   }[];
@@ -66,3 +68,52 @@ export type FlashcardDeckDeleteInput = {
   requester: string;
   isAdmin?: boolean;
 };
+
+export type QuizQuestionInput = {
+  id?: string;
+  question: string;
+  options: string[];
+  correctAnswer: number[];
+  feedback?: string;
+  type?: 'multiple_choice' | 'single_choice' | 'short_answer';
+};
+
+export type QuizSaveInput = {
+  quizId?: string;
+  title: string;
+  description: string;
+  moduleId?: string;
+  difficulty: 'Grundlagen' | 'Vertiefung' | 'Prüfungsvorbereitung';
+  timeLimitSeconds?: number | null;
+  questions: QuizQuestionInput[];
+};
+
+export type QuizListItem = {
+  id: string;
+  title: string;
+  description: string;
+  moduleId: string;
+  difficulty: 'Grundlagen' | 'Vertiefung' | 'Prüfungsvorbereitung';
+  timeLimitSeconds: number | null;
+  questions: {
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: number[];
+    feedback: string;
+    type: 'multiple_choice' | 'single_choice' | 'short_answer';
+  }[];
+};
+
+export type QuizDeleteInput = {
+  quizId: string;
+  requester: string;
+  isAdmin?: boolean;
+};
+
+export type UserFastSearchItem = {
+  id: string;
+  label: string;
+};
+
+export type FastSearchScope = 'summaries' | 'flashcards';

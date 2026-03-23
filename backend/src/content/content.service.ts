@@ -9,6 +9,11 @@ import type {
   ModuleDeleteInput,
   ModuleListItem,
   ModuleSaveInput,
+  QuizDeleteInput,
+  QuizListItem,
+  QuizSaveInput,
+  FastSearchScope,
+  UserFastSearchItem,
 } from './content.types';
 
 @Injectable()
@@ -160,16 +165,19 @@ export class ContentService {
       cards: [
         {
           id: 'deck-1-card-1',
+          title: 'Karte 1',
           front: 'Was ist eine Matrix?',
           back: 'Eine rechteckige Anordnung von Zahlen.',
         },
         {
           id: 'deck-1-card-2',
+          title: 'Karte 2',
           front: 'Was ist eine Determinante?',
           back: 'Ein Skalarwert, der Eigenschaften einer Matrix beschreibt.',
         },
         {
           id: 'deck-1-card-3',
+          title: 'Karte 3',
           front: 'Was ist ein Eigenwert?',
           back: 'Ein Faktor, um den ein Eigenvektor skaliert wird.',
         },
@@ -184,13 +192,65 @@ export class ContentService {
       cards: [
         {
           id: 'deck-2-card-1',
+          title: 'Karte 1',
           front: 'Wofür steht TCP?',
           back: 'Transmission Control Protocol.',
         },
         {
           id: 'deck-2-card-2',
+          title: 'Karte 2',
           front: 'Wofür steht DNS?',
           back: 'Domain Name System.',
+        },
+      ],
+    },
+  ];
+
+  private readonly fallbackQuizzes: QuizListItem[] = [
+    {
+      id: 'quiz-1',
+      title: 'Lineare Algebra Check',
+      description: 'Prüft Grundlagen zu Matrizen, Vektoren und Eigenwerten.',
+      moduleId: 'mod-1',
+      difficulty: 'Grundlagen',
+      timeLimitSeconds: 600,
+      questions: [
+        {
+          id: 'quiz-1-q-1',
+          question: 'Was beschreibt die Determinante einer Matrix?',
+          options: [
+            'Eine Zeile',
+            'Eine Eigenschaft der Matrix',
+            'Nur die Dimension',
+            'Eine Zufallszahl',
+          ],
+          correctAnswer: [1],
+          feedback:
+            'Die Determinante ist ein Skalarwert mit Matrixeigenschaften.',
+          type: 'multiple_choice',
+        },
+      ],
+    },
+    {
+      id: 'quiz-2',
+      title: 'Neuronale Netze Training',
+      description: 'Backpropagation, Loss und Lernrate im Schnellcheck.',
+      moduleId: 'mod-2',
+      difficulty: 'Vertiefung',
+      timeLimitSeconds: null,
+      questions: [
+        {
+          id: 'quiz-2-q-1',
+          question: 'Wofür wird Backpropagation genutzt?',
+          options: [
+            'Zum Laden von Daten',
+            'Zum Berechnen von Gradienten',
+            'Zum Rendern von UI',
+            'Zum Speichern von Dateien',
+          ],
+          correctAnswer: [1],
+          feedback: 'Backpropagation berechnet Gradienten für das Training.',
+          type: 'multiple_choice',
         },
       ],
     },
@@ -333,6 +393,69 @@ export class ContentService {
         };
       })
       .filter((moduleItem) => moduleItem.id.length > 0);
+  }
+
+  async getUserFastSearches(
+    userId: string,
+    scope: FastSearchScope,
+  ): Promise<UserFastSearchItem[]> {
+    const client = this.createSupabaseServiceClient();
+    if (!client || !userId) {
+      return [];
+    }
+
+    const { data, error } = await client
+      .from('user_fast_searches')
+      .select('fast_search_id, label')
+      .eq('user_id', userId)
+      .eq('scope', scope)
+      .order('created_at', { ascending: true });
+
+    if (error || !data?.length) {
+      return [];
+    }
+
+    return data.map((item) => {
+      const record = item as Record<string, unknown>;
+      const id =
+        typeof record.fast_search_id === 'string' ? record.fast_search_id : '';
+      const label = typeof record.label === 'string' ? record.label : '';
+      return { id, label };
+    });
+  }
+
+  async saveUserFastSearch(
+    userId: string,
+    label: string,
+    scope: FastSearchScope,
+  ) {
+    const client = this.createSupabaseServiceClient();
+    if (!client || !userId || !label.trim()) {
+      return { saved: false };
+    }
+
+    const existing = await client
+      .from('user_fast_searches')
+      .select('fast_search_id')
+      .eq('user_id', userId)
+      .eq('scope', scope)
+      .eq('label', label.trim())
+      .maybeSingle();
+
+    if (existing.data) {
+      return { saved: true };
+    }
+
+    const { error } = await client.from('user_fast_searches').insert({
+      user_id: userId,
+      scope,
+      label: label.trim(),
+    });
+
+    if (error) {
+      return { saved: false, message: error.message };
+    }
+    return { saved: true };
   }
 
   async saveModuleDraft(body: ModuleSaveInput) {
@@ -499,6 +622,7 @@ export class ContentService {
       string,
       {
         id: string;
+        title: string;
         front: string;
         back: string;
       }[]
@@ -507,7 +631,7 @@ export class ContentService {
     if (deckIds.length > 0) {
       const { data: cardData } = await client
         .from(cardTable)
-        .select('card_id, deck_id, front, back, position')
+        .select('card_id, deck_id, card_title, front, back, position')
         .in('deck_id', deckIds)
         .order('position', { ascending: true });
 
@@ -522,8 +646,13 @@ export class ContentService {
               : `${deckId}-${Math.random().toString(36).slice(2, 9)}`;
           const front = typeof record.front === 'string' ? record.front : '';
           const back = typeof record.back === 'string' ? record.back : '';
+          const title =
+            typeof record.card_title === 'string' &&
+            record.card_title.length > 0
+              ? record.card_title
+              : `Karte ${(cardsByDeck.get(deckId)?.length ?? 0) + 1}`;
           const current = cardsByDeck.get(deckId) ?? [];
-          current.push({ id: cardId, front, back });
+          current.push({ id: cardId, title, front, back });
           cardsByDeck.set(deckId, current);
         });
       }
@@ -586,6 +715,7 @@ export class ContentService {
       .map((card, index) => ({
         card_id: card.id?.trim() || `${deckId}-card-${index + 1}-${Date.now()}`,
         deck_id: deckId,
+        card_title: card.title?.trim() || `Karte ${index + 1}`,
         front: card.front?.trim() ?? '',
         back: card.back?.trim() ?? '',
         position: index,
@@ -718,6 +848,307 @@ export class ContentService {
       deleted: true,
       source: 'supabase',
       message: 'Deck gelöscht.',
+    };
+  }
+
+  async getQuizzes(limit: number, offset: number): Promise<QuizListItem[]> {
+    const quizTable =
+      this.configService.get<string>('SUPABASE_QUIZZES_TABLE') ?? 'quizzes';
+    const questionTable =
+      this.configService.get<string>('SUPABASE_QUIZ_QUESTIONS_TABLE') ??
+      'quiz_questions';
+    const client = this.createSupabaseServiceClient();
+
+    if (!client) {
+      return this.fallbackQuizzes.slice(offset, offset + limit);
+    }
+
+    const { data: quizData, error: quizError } = await client
+      .from(quizTable)
+      .select(
+        'quiz_id, title, description, module_id, difficulty, time_limit_seconds',
+      )
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (quizError || !quizData?.length) {
+      return this.fallbackQuizzes.slice(offset, offset + limit);
+    }
+
+    const quizIds = quizData
+      .map((item) => {
+        const record = item as Record<string, unknown>;
+        return typeof record.quiz_id === 'string' ? record.quiz_id : '';
+      })
+      .filter((value) => value.length > 0);
+
+    const questionsByQuiz = new Map<
+      QuizListItem['id'],
+      QuizListItem['questions']
+    >();
+
+    if (quizIds.length > 0) {
+      const { data: questionData } = await client
+        .from(questionTable)
+        .select(
+          'question_id, quiz_id, question_type, question, options, correct_answer, feedback, position',
+        )
+        .in('quiz_id', quizIds)
+        .order('position', { ascending: true });
+
+      if (questionData?.length) {
+        questionData.forEach((item) => {
+          const record = item as Record<string, unknown>;
+          const quizId =
+            typeof record.quiz_id === 'string' ? record.quiz_id : '';
+          const questionId =
+            typeof record.question_id === 'string'
+              ? record.question_id
+              : `${quizId}-${Date.now()}`;
+          const question =
+            typeof record.question === 'string' ? record.question : '';
+          const options = Array.isArray(record.options)
+            ? record.options.filter(
+                (entry): entry is string => typeof entry === 'string',
+              )
+            : [];
+          const correctAnswer = Array.isArray(record.correct_answer)
+            ? record.correct_answer.filter(
+                (entry): entry is number => typeof entry === 'number',
+              )
+            : [];
+          const feedback =
+            typeof record.feedback === 'string' ? record.feedback : '';
+          const type =
+            record.question_type === 'single_choice' ||
+            record.question_type === 'short_answer'
+              ? record.question_type
+              : 'multiple_choice';
+          const current = questionsByQuiz.get(quizId) ?? [];
+          current.push({
+            id: questionId,
+            question,
+            options,
+            correctAnswer,
+            feedback,
+            type,
+          });
+          questionsByQuiz.set(quizId, current);
+        });
+      }
+    }
+
+    return quizData
+      .map((item) => {
+        const record = item as Record<string, unknown>;
+        const id = typeof record.quiz_id === 'string' ? record.quiz_id : '';
+        const title = typeof record.title === 'string' ? record.title : '';
+        const description =
+          typeof record.description === 'string' ? record.description : '';
+        const moduleId =
+          typeof record.module_id === 'string' ? record.module_id : '';
+        const difficulty: QuizListItem['difficulty'] =
+          record.difficulty === 'Vertiefung' ||
+          record.difficulty === 'Prüfungsvorbereitung'
+            ? record.difficulty
+            : 'Grundlagen';
+        const timeLimitSeconds =
+          typeof record.time_limit_seconds === 'number'
+            ? record.time_limit_seconds
+            : null;
+        const questions = questionsByQuiz.get(id) ?? [];
+        return {
+          id,
+          title,
+          description,
+          moduleId,
+          difficulty,
+          timeLimitSeconds,
+          questions,
+        };
+      })
+      .filter(
+        (quizItem) => quizItem.id.length > 0 && quizItem.title.length > 0,
+      );
+  }
+
+  async saveQuiz(body: QuizSaveInput) {
+    const quizTable =
+      this.configService.get<string>('SUPABASE_QUIZZES_TABLE') ?? 'quizzes';
+    const questionTable =
+      this.configService.get<string>('SUPABASE_QUIZ_QUESTIONS_TABLE') ??
+      'quiz_questions';
+    const client = this.createSupabaseServiceClient();
+
+    if (!client) {
+      return {
+        saved: false,
+        source: 'local',
+        message: 'SUPABASE_SERVICE_ROLE_KEY fehlt.',
+      };
+    }
+
+    const quizId = (body.quizId?.trim() || `quiz-${Date.now()}`).slice(0, 90);
+    const title = body.title?.trim();
+    if (!title) {
+      return {
+        saved: false,
+        source: 'validation',
+        message: 'Titel ist erforderlich.',
+      };
+    }
+
+    const questions = Array.isArray(body.questions) ? body.questions : [];
+
+    const { error: quizError } = await client.from(quizTable).upsert(
+      {
+        quiz_id: quizId,
+        title,
+        description: body.description?.trim() ?? '',
+        module_id: body.moduleId?.trim() ?? '',
+        difficulty: body.difficulty ?? 'Grundlagen',
+        time_limit_seconds:
+          typeof body.timeLimitSeconds === 'number'
+            ? body.timeLimitSeconds
+            : null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'quiz_id' },
+    );
+
+    if (quizError) {
+      return {
+        saved: false,
+        source: 'supabase',
+        message: quizError.message,
+      };
+    }
+
+    const { error: deleteError } = await client
+      .from(questionTable)
+      .delete()
+      .eq('quiz_id', quizId);
+
+    if (deleteError) {
+      return {
+        saved: false,
+        source: 'supabase',
+        message: deleteError.message,
+      };
+    }
+
+    if (questions.length > 0) {
+      const normalizedQuestions = questions
+        .map((question, index) => ({
+          question_id:
+            question.id?.trim() || `${quizId}-q-${index + 1}-${Date.now()}`,
+          quiz_id: quizId,
+          question_type: question.type ?? 'multiple_choice',
+          question: question.question?.trim() ?? '',
+          options: Array.isArray(question.options) ? question.options : [],
+          correct_answer: Array.isArray(question.correctAnswer)
+            ? question.correctAnswer
+            : [],
+          feedback: question.feedback?.trim() ?? '',
+          position: index,
+          updated_at: new Date().toISOString(),
+        }))
+        .filter((entry) => entry.question.length > 0);
+
+      if (normalizedQuestions.length > 0) {
+        const { error: questionError } = await client
+          .from(questionTable)
+          .insert(normalizedQuestions);
+
+        if (questionError) {
+          return {
+            saved: false,
+            source: 'supabase',
+            message: questionError.message,
+          };
+        }
+      }
+    }
+
+    return {
+      saved: true,
+      source: 'supabase',
+      quizId,
+      message: 'Quiz erfolgreich gespeichert.',
+    };
+  }
+
+  async deleteQuiz(body: QuizDeleteInput) {
+    const quizId = body.quizId?.trim();
+    const requester = body.requester?.trim();
+    const isAdmin = Boolean(body.isAdmin);
+    const quizTable =
+      this.configService.get<string>('SUPABASE_QUIZZES_TABLE') ?? 'quizzes';
+    const client = this.createSupabaseServiceClient();
+
+    if (!quizId || !requester) {
+      return {
+        deleted: false,
+        source: 'validation',
+        message: 'quizId und requester sind erforderlich.',
+      };
+    }
+
+    if (!client) {
+      return {
+        deleted: false,
+        source: 'local',
+        message: 'SUPABASE_SERVICE_ROLE_KEY fehlt.',
+      };
+    }
+
+    const { data, error } = await client
+      .from(quizTable)
+      .select('quiz_id, created_by')
+      .eq('quiz_id', quizId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return {
+        deleted: false,
+        source: 'supabase',
+        message: error?.message ?? 'Quiz nicht gefunden.',
+      };
+    }
+
+    const createdBy =
+      typeof (data as Record<string, unknown>).created_by === 'string'
+        ? ((data as Record<string, unknown>).created_by as string)
+        : '';
+
+    if (
+      !isAdmin &&
+      createdBy.trim().toLowerCase() !== requester.toLowerCase()
+    ) {
+      return {
+        deleted: false,
+        source: 'policy',
+        message: 'Nur Ersteller oder Admin dürfen löschen.',
+      };
+    }
+
+    const { error: deleteError } = await client
+      .from(quizTable)
+      .delete()
+      .eq('quiz_id', quizId);
+
+    if (deleteError) {
+      return {
+        deleted: false,
+        source: 'supabase',
+        message: deleteError.message,
+      };
+    }
+
+    return {
+      deleted: true,
+      source: 'supabase',
+      message: 'Quiz gelöscht.',
     };
   }
 }

@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type FormEvent,
 } from 'react'
 import {
@@ -65,6 +66,7 @@ type ModuleApiItem = {
 
 type FlashcardCard = {
   id: string
+  title: string
   front: string
   back: string
 }
@@ -76,6 +78,25 @@ type FlashcardDeck = {
   topic: string
   cardCount: number
   cards: FlashcardCard[]
+}
+
+type QuizQuestion = {
+  id: string
+  question: string
+  options: string[]
+  correctIndex: number
+}
+
+type QuizDifficulty = 'Grundlagen' | 'Vertiefung' | 'Prüfungsvorbereitung'
+
+type QuizItem = {
+  id: string
+  title: string
+  description: string
+  moduleName: string
+  difficulty: QuizDifficulty
+  timeLimitSeconds: number | null
+  questions: QuizQuestion[]
 }
 
 type GameEntry = {
@@ -136,12 +157,6 @@ const dropdownGroups: NavigationGroup[] = [
 ]
 
 const dropdownPlaceholderPages: Page[] = [
-  {
-    slug: 'quiz',
-    label: 'Quiz',
-    highlight: 'QUIZ',
-    fallbackText: 'Hier steht später dein Quiz-Bereich mit direktem Feedback.',
-  },
   {
     slug: 'support-kontakt',
     label: 'Support kontaktieren',
@@ -258,6 +273,9 @@ const initialModulePdfs: Record<string, ModulePdf[]> = {
 }
 
 const moduleDraftStorageKey = 'studentenhub-module-drafts'
+const favoriteModuleStorageKey = 'studentenhub-favorite-modules'
+const favoriteDeckStorageKey = 'studentenhub-favorite-decks'
+const quizStorageKey = 'studentenhub-quizzes'
 
 const initialFlashcardDecks: FlashcardDeck[] = [
   {
@@ -267,9 +285,9 @@ const initialFlashcardDecks: FlashcardDeck[] = [
     topic: 'Mathematik',
     cardCount: 3,
     cards: [
-      { id: 'deck-1-card-1', front: 'Was ist eine Matrix?', back: 'Eine rechteckige Anordnung von Zahlen.' },
-      { id: 'deck-1-card-2', front: 'Was ist eine Determinante?', back: 'Ein Skalarwert, der Eigenschaften einer Matrix beschreibt.' },
-      { id: 'deck-1-card-3', front: 'Was ist ein Eigenwert?', back: 'Ein Faktor, um den ein Eigenvektor skaliert wird.' },
+      { id: 'deck-1-card-1', title: 'Karte 1', front: 'Was ist eine Matrix?', back: 'Eine rechteckige Anordnung von Zahlen.' },
+      { id: 'deck-1-card-2', title: 'Karte 2', front: 'Was ist eine Determinante?', back: 'Ein Skalarwert, der Eigenschaften einer Matrix beschreibt.' },
+      { id: 'deck-1-card-3', title: 'Karte 3', front: 'Was ist ein Eigenwert?', back: 'Ein Faktor, um den ein Eigenvektor skaliert wird.' },
     ],
   },
   {
@@ -279,8 +297,54 @@ const initialFlashcardDecks: FlashcardDeck[] = [
     topic: 'Informatik',
     cardCount: 2,
     cards: [
-      { id: 'deck-2-card-1', front: 'Wofür steht TCP?', back: 'Transmission Control Protocol.' },
-      { id: 'deck-2-card-2', front: 'Wofür steht DNS?', back: 'Domain Name System.' },
+      { id: 'deck-2-card-1', title: 'Karte 1', front: 'Wofür steht TCP?', back: 'Transmission Control Protocol.' },
+      { id: 'deck-2-card-2', title: 'Karte 2', front: 'Wofür steht DNS?', back: 'Domain Name System.' },
+    ],
+  },
+]
+
+const initialQuizzes: QuizItem[] = [
+  {
+    id: 'quiz-1',
+    title: 'Lineare Algebra Check',
+    description: 'Prüft die Grundlagen zu Matrizen, Vektoren und Eigenwerten.',
+    moduleName: 'Lineare Algebra Grundlagen',
+    difficulty: 'Grundlagen',
+    timeLimitSeconds: 600,
+    questions: [
+      {
+        id: 'quiz-1-q-1',
+        question: 'Was beschreibt die Determinante einer Matrix?',
+        options: ['Eine Zeile', 'Eine Eigenschaft der Matrix', 'Nur die Dimension', 'Eine Zufallszahl'],
+        correctIndex: 1,
+      },
+      {
+        id: 'quiz-1-q-2',
+        question: 'Was ist ein Eigenwert?',
+        options: ['Ein Vektor', 'Ein Skalarfaktor eines Eigenvektors', 'Eine Matrixnorm', 'Ein Winkel'],
+        correctIndex: 1,
+      },
+    ],
+  },
+  {
+    id: 'quiz-2',
+    title: 'Neuronale Netze Training',
+    description: 'Backpropagation, Loss und Lernrate im Schnellcheck.',
+    moduleName: 'Neuronale Netze kompakt',
+    difficulty: 'Vertiefung',
+    timeLimitSeconds: null,
+    questions: [
+      {
+        id: 'quiz-2-q-1',
+        question: 'Wofür wird Backpropagation genutzt?',
+        options: [
+          'Zum Laden von Daten',
+          'Zum Berechnen und Zurückführen von Gradienten',
+          'Zum Rendern von UI',
+          'Zum Speichern von Modellen',
+        ],
+        correctIndex: 1,
+      },
     ],
   },
 ]
@@ -620,39 +684,43 @@ function AuthPage({ mode }: { mode: 'anmelden' | 'registrieren' }) {
 }
 
 function StartPage() {
+  const roadmapEntries = [
+    {
+      to: '/zusammenfassungen',
+      logo: `${import.meta.env.BASE_URL}Zusammenfassungen.png`,
+      title: 'Zusammenfassungen',
+    },
+    {
+      to: '/karteikarten',
+      logo: `${import.meta.env.BASE_URL}Karteikarten.png`,
+      title: 'Karteikarten',
+    },
+    {
+      to: '/spiele',
+      logo: `${import.meta.env.BASE_URL}Spiele.png`,
+      title: 'Spiele',
+    },
+    {
+      to: '/quiz',
+      logo: `${import.meta.env.BASE_URL}Quiz.png`,
+      title: 'Quiz',
+    },
+  ]
+
   return (
-    <section className="placeholder-card">
-      <p className="card-tag">START</p>
-      <h2>Roadmap StudyCloud</h2>
-      <h3>So wächst die Plattform</h3>
+    <section className="placeholder-card start-roadmap">
       <ul className="landing-roadmap">
-        <li>
-          <span className="roadmap-icon">🧠</span>
-          <div>
-            <strong>Zusammenfassungen</strong>
-            <p>Intelligente Struktur, Themenzuordnung und Live-Bearbeitung.</p>
-          </div>
-        </li>
-        <li>
-          <span className="roadmap-icon">🗂</span>
-          <div>
-            <strong>Karteikarten</strong>
-            <p>Adaptive Decks, Play-Session, Feedback und Lernverlauf.</p>
-          </div>
-        </li>
-        <li>
-          <span className="roadmap-icon">🎮</span>
-          <div>
-            <strong>Spiele & Quiz</strong>
-            <p>Gamified Training, Punkte, Challenges und tägliche Ziele.</p>
-          </div>
-        </li>
+        {roadmapEntries.map((entry) => (
+          <li key={entry.to}>
+            <NavLink to={entry.to} className="landing-roadmap-link">
+              <img className="roadmap-icon" src={entry.logo} alt={entry.title} />
+              <div>
+                <strong>{entry.title}</strong>
+              </div>
+            </NavLink>
+          </li>
+        ))}
       </ul>
-      <div className="account-actions">
-        <NavLink to="/zusammenfassungen" className="account-link">
-          Zu den Zusammenfassungen
-        </NavLink>
-      </div>
     </section>
   )
 }
@@ -705,6 +773,20 @@ function CloseIconButton({ onClick }: { onClick: () => void }) {
 
 function FlashcardsPage() {
   const [decks, setDecks] = useState<FlashcardDeck[]>(initialFlashcardDecks)
+  const [query, setQuery] = useState('')
+  const [favoriteDeckIds, setFavoriteDeckIds] = useState<string[]>([])
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false)
+  const [fastSearchItems, setFastSearchItems] = useState<string[]>([
+    'BWP',
+    'Weiterbildung',
+    'Psychologie',
+    'Didaktik',
+    'SPSS',
+  ])
+  const [isFastSearchDialogOpen, setIsFastSearchDialogOpen] = useState(false)
+  const [newFastSearchLabel, setNewFastSearchLabel] = useState('')
+  const [isSavingFastSearch, setIsSavingFastSearch] = useState(false)
+  const [fastSearchError, setFastSearchError] = useState('')
   const [deckOffset, setDeckOffset] = useState(initialFlashcardDecks.length)
   const [hasMoreDecks, setHasMoreDecks] = useState(true)
   const [isLoadingDecks, setIsLoadingDecks] = useState(false)
@@ -724,6 +806,7 @@ function FlashcardsPage() {
   })
   const [feedbackCounts, setFeedbackCounts] = useState<Record<string, { right: number; wrong: number }>>({})
   const [isDeletingDeck, setIsDeletingDeck] = useState<string | null>(null)
+  const [expandedEditorCards, setExpandedEditorCards] = useState<Record<string, boolean>>({})
 
   const loadMoreDecks = useCallback(async () => {
     if (isLoadingDecks || !hasMoreDecks) {
@@ -748,7 +831,15 @@ function FlashcardsPage() {
       const normalized = payload.map((deck) => ({
         ...deck,
         cardCount: Array.isArray(deck.cards) ? deck.cards.length : 0,
-        cards: Array.isArray(deck.cards) ? deck.cards : [],
+        cards: Array.isArray(deck.cards)
+          ? deck.cards.map((card, index) => ({
+              ...card,
+              title:
+                typeof card.title === 'string' && card.title.trim().length > 0
+                  ? card.title
+                  : `Karte ${index + 1}`,
+            }))
+          : [],
       }))
 
       let addedCount = 0
@@ -789,6 +880,110 @@ function FlashcardsPage() {
   const activeCard = activeDeck?.cards[activeCardIndex] ?? null
   const playCard = playDeck?.cards[playCardIndex] ?? null
   const activeFeedback = activeDeck ? feedbackCounts[activeDeck.id] ?? { right: 0, wrong: 0 } : null
+  const visibleDecks = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+    return decks.filter((deck) => {
+      if (showOnlyFavorites && !favoriteDeckIds.includes(deck.id)) {
+        return false
+      }
+      if (!normalizedQuery) {
+        return true
+      }
+      const haystack = `${deck.name} ${deck.creator} ${deck.topic}`.toLowerCase()
+      return haystack.includes(normalizedQuery)
+    })
+  }, [decks, favoriteDeckIds, query, showOnlyFavorites])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(favoriteDeckStorageKey)
+      if (!raw) {
+        return
+      }
+      const parsed = JSON.parse(raw) as string[]
+      if (Array.isArray(parsed)) {
+        setFavoriteDeckIds(parsed.filter((entry): entry is string => typeof entry === 'string'))
+      }
+    } catch {
+      setFavoriteDeckIds([])
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(favoriteDeckStorageKey, JSON.stringify(favoriteDeckIds))
+  }, [favoriteDeckIds])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch(`${apiBase}/content/modules/fast-search?scope=flashcards`, {
+          credentials: 'include',
+        })
+        if (!response.ok) {
+          return
+        }
+        const payload = (await response.json()) as { id: string; label: string }[]
+        if (!Array.isArray(payload)) {
+          return
+        }
+        setFastSearchItems((current) => {
+          const labels = new Set(current)
+          payload.forEach((item) => {
+            if (item.label && !labels.has(item.label)) {
+              labels.add(item.label)
+            }
+          })
+          return Array.from(labels)
+        })
+      } catch {
+        // ignore
+      }
+    })()
+  }, [])
+
+  function toggleFavoriteDeck(deckId: string) {
+    setFavoriteDeckIds((current) =>
+      current.includes(deckId)
+        ? current.filter((entry) => entry !== deckId)
+        : [...current, deckId],
+    )
+  }
+
+  async function saveFastSearchLabel() {
+    const label = newFastSearchLabel.trim()
+    if (!label) {
+      setFastSearchError('Bitte ein Wort eingeben.')
+      return
+    }
+    if (fastSearchItems.includes(label)) {
+      setFastSearchError('Dieses Fast-Search Wort ist bereits vorhanden.')
+      return
+    }
+
+    setIsSavingFastSearch(true)
+    setFastSearchError('')
+    try {
+      const response = await fetch(`${apiBase}/content/modules/fast-search/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ label, scope: 'flashcards' }),
+      })
+      const payload = (await response.json()) as { saved?: boolean }
+      if (!response.ok || !payload.saved) {
+        throw new Error('Fast-Search Wort konnte nicht gespeichert werden.')
+      }
+      setFastSearchItems((current) => [...current, label])
+      setNewFastSearchLabel('')
+      setIsFastSearchDialogOpen(false)
+    } catch {
+      setFastSearchError('Fast-Search Wort konnte nicht gespeichert werden.')
+    } finally {
+      setIsSavingFastSearch(false)
+    }
+  }
 
   function openDeckView(deckId: string) {
     setActiveDeckId(deckId)
@@ -808,6 +1003,7 @@ function FlashcardsPage() {
       ...deck,
       cards: deck.cards.map((card) => ({ ...card })),
     })
+    setExpandedEditorCards({})
     setActiveDeckId(null)
     setPlayDeckId(null)
     setFlashcardMessage('')
@@ -873,8 +1069,9 @@ function FlashcardsPage() {
       creator: 'Aktiver User',
       topic: '',
       cardCount: 0,
-      cards: [{ id: `card-${Date.now()}`, front: '', back: '' }],
+      cards: [{ id: `card-${Date.now()}`, title: 'Karte 1', front: '', back: '' }],
     })
+    setExpandedEditorCards({})
     setActiveDeckId(null)
     setPlayDeckId(null)
     setFlashcardMessage('')
@@ -905,11 +1102,23 @@ function FlashcardsPage() {
             ...current,
             cards: [
               ...current.cards,
-              { id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, front: '', back: '' },
+              {
+                id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                title: `Karte ${current.cards.length + 1}`,
+                front: '',
+                back: '',
+              },
             ],
           }
         : current,
     )
+  }
+
+  function toggleEditorCard(cardId: string) {
+    setExpandedEditorCards((current) => ({
+      ...current,
+      [cardId]: !current[cardId],
+    }))
   }
 
   function deleteEditorCard(cardId: string) {
@@ -921,6 +1130,11 @@ function FlashcardsPage() {
           }
         : current,
     )
+    setExpandedEditorCards((current) => {
+      const next = { ...current }
+      delete next[cardId]
+      return next
+    })
   }
 
   async function saveDeck() {
@@ -957,6 +1171,7 @@ function FlashcardsPage() {
           topic: editorDeck.topic,
           cards: validCards.map((card) => ({
             id: card.id,
+            title: card.title,
             front: card.front,
             back: card.back,
           })),
@@ -983,6 +1198,7 @@ function FlashcardsPage() {
         return [updatedDeck, ...current]
       })
       setEditorDeck(null)
+      setExpandedEditorCards({})
       setFlashcardMessage('Deck erfolgreich gespeichert.')
     } catch (error) {
       setFlashcardMessage(error instanceof Error ? error.message : 'Deck konnte nicht gespeichert werden.')
@@ -1050,12 +1266,66 @@ function FlashcardsPage() {
       <div className="summary-list-container">
         <p className="card-tag">Karteikarten-Liste</p>
         <p>Decks mit Name, Ersteller, Thema und Anzahl der Karten.</p>
-        <button type="button" className="add-deck-button" onClick={startNewDeck}>
-          Deck hinzufügen
-        </button>
+        <label className="summary-search">
+          <div className="summary-search-controls">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Deck-Titel suchen..."
+            />
+            <button
+              type="button"
+              className={`favorites-filter-button ${showOnlyFavorites ? 'is-active' : ''}`}
+              onClick={() => setShowOnlyFavorites((current) => !current)}
+              aria-label="Nur Favoriten anzeigen"
+              title="Nur Favoriten anzeigen"
+            >
+              ★ Favoriten anzeigen
+            </button>
+            <button type="button" className="add-deck-button add-summary-button" onClick={startNewDeck}>
+              + Deck
+            </button>
+          </div>
+        </label>
+        <div className="fast-search-row">
+          <button
+            type="button"
+            className="fast-search-add-button"
+            onClick={() => {
+              setIsFastSearchDialogOpen(true)
+              setFastSearchError('')
+            }}
+            aria-label="Fast-Search hinzufügen"
+            title="Fast-Search hinzufügen"
+          >
+            +
+          </button>
+          {fastSearchItems.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className="fast-search-chip"
+              onClick={() => setQuery(label)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <ul className="deck-list">
-          {decks.map((deck) => (
+          {visibleDecks.map((deck) => (
             <li key={deck.id}>
+              <button
+                type="button"
+                className={`module-card-favorite-corner ${
+                  favoriteDeckIds.includes(deck.id) ? 'is-active' : ''
+                }`}
+                onClick={() => toggleFavoriteDeck(deck.id)}
+                title="Favorisieren"
+                aria-label="Favorisieren"
+              >
+                {favoriteDeckIds.includes(deck.id) ? '★' : '☆'}
+              </button>
               <div className="module-list-content">
                 <span className="module-list-main">{deck.name}</span>
                 <span className="module-list-meta">
@@ -1142,12 +1412,14 @@ function FlashcardsPage() {
                 </div>
               ) : (
                 <>
-                  <div className="module-view-header">
+                  <div className="module-view-header play-view-header">
                     <h2>{playDeck.name}</h2>
                     <p className="module-view-tag">Play-Session</p>
                   </div>
-                  <p>Thema: {playDeck.topic}</p>
-                  <p>Ersteller: {playDeck.creator}</p>
+                  <div className="play-meta-row">
+                    <p>Thema: {playDeck.topic}</p>
+                    <p>Ersteller: {playDeck.creator}</p>
+                  </div>
                   {playCard ? (
                     <div className="flashcard-play-area">
                       <div
@@ -1198,16 +1470,19 @@ function FlashcardsPage() {
             </>
           ) : activeDeck ? (
             <>
-              <div className="module-view-header">
+                  <div className="module-view-header play-view-header">
                 <h2>{activeDeck.name}</h2>
                 <p className="module-view-tag">Deck-Ansicht</p>
               </div>
-              <p>Thema: {activeDeck.topic}</p>
-              <p>Ersteller: {activeDeck.creator}</p>
+              <div className="play-meta-row">
+                <p>Thema: {activeDeck.topic}</p>
+                <p>Ersteller: {activeDeck.creator}</p>
+              </div>
               {activeCard ? (
                 <div className="module-glass-card">
                   <h3>
-                    Karte {activeCardIndex + 1}/{activeDeck.cards.length}
+                    {activeCard.title || `Karte ${activeCardIndex + 1}`} · {activeCardIndex + 1}/
+                    {activeDeck.cards.length}
                   </h3>
                   <p><strong>Vorderseite:</strong> {activeCard.front}</p>
                   {isAnswerVisible && <p><strong>Rückseite:</strong> {activeCard.back}</p>}
@@ -1258,8 +1533,10 @@ function FlashcardsPage() {
           ) : editorDeck ? (
             <>
               <div className="module-view-header">
-                <h2>Deck bearbeiten</h2>
-                <p className="module-view-tag">Editor</p>
+                <div className="module-view-title-row">
+                  <h2>Deck bearbeiten</h2>
+                  <p className="module-view-tag">Editor</p>
+                </div>
               </div>
               <label className="deck-field">
                 <span>Name des Decks</span>
@@ -1286,40 +1563,383 @@ function FlashcardsPage() {
               <div className="deck-card-editor-list">
                 {editorDeck.cards.map((card, index) => (
                   <div key={card.id} className="module-glass-card">
-                    <h3>Karte {index + 1}</h3>
-                    <label className="deck-field">
-                      <span>Vorderseite</span>
-                      <textarea
-                        value={card.front}
-                        onChange={(event) => updateEditorCard(card.id, 'front', event.target.value)}
-                      />
-                    </label>
-                    <label className="deck-field">
-                      <span>Rückseite</span>
-                      <textarea
-                        value={card.back}
-                        onChange={(event) => updateEditorCard(card.id, 'back', event.target.value)}
-                      />
-                    </label>
-                    <button type="button" onClick={() => deleteEditorCard(card.id)}>
-                      Karte löschen
-                    </button>
+                    <div className="card-editor-head">
+                      <h3>{card.title || `Karte ${index + 1}`}</h3>
+                      <button type="button" onClick={() => toggleEditorCard(card.id)}>
+                        {expandedEditorCards[card.id] ? '▾' : '▸'}
+                      </button>
+                    </div>
+                    {expandedEditorCards[card.id] && (
+                      <>
+                        <label className="deck-field">
+                          <span>Kartenname</span>
+                          <input
+                            value={card.title}
+                            onChange={(event) => updateEditorCard(card.id, 'title', event.target.value)}
+                          />
+                        </label>
+                        <label className="deck-field">
+                          <span>Vorderseite</span>
+                          <textarea
+                            value={card.front}
+                            onChange={(event) => updateEditorCard(card.id, 'front', event.target.value)}
+                          />
+                        </label>
+                        <label className="deck-field">
+                          <span>Rückseite</span>
+                          <textarea
+                            value={card.back}
+                            onChange={(event) => updateEditorCard(card.id, 'back', event.target.value)}
+                          />
+                        </label>
+                        <button type="button" className="danger-button" onClick={() => deleteEditorCard(card.id)}>
+                          Karte löschen
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
 
               {flashcardMessage && <p className="module-save-message">{flashcardMessage}</p>}
               <div className="detail-action-row">
-                <button type="button" onClick={addEditorCard}>
+                <button type="button" className="success-button" onClick={addEditorCard}>
                   Karte hinzufügen
                 </button>
-                <button type="button" onClick={() => void saveDeck()}>
+                <button type="button" className="success-button" onClick={() => void saveDeck()}>
                   {isSavingDeck ? 'Speichert...' : 'Deck speichern'}
                 </button>
                 <CloseIconButton onClick={() => setEditorDeck(null)} />
               </div>
             </>
           ) : null}
+        </div>
+      )}
+      {isFastSearchDialogOpen && (
+        <div className="confirm-overlay fast-search-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-dialog fast-search-dialog">
+            <p>Neues Fast-Search Wort hinzufügen</p>
+            <input
+              type="text"
+              value={newFastSearchLabel}
+              onChange={(event) => setNewFastSearchLabel(event.target.value)}
+              placeholder="Fast-Search Wort"
+            />
+            {fastSearchError && <p className="module-save-message">{fastSearchError}</p>}
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="confirm-cancel"
+                onClick={() => {
+                  setIsFastSearchDialogOpen(false)
+                  setNewFastSearchLabel('')
+                  setFastSearchError('')
+                }}
+              >
+                Abbruch
+              </button>
+              <button
+                type="button"
+                className="fast-search-confirm-button"
+                onClick={() => void saveFastSearchLabel()}
+                disabled={isSavingFastSearch}
+              >
+                {isSavingFastSearch ? 'Speichert...' : 'Bestätigen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function QuizPage() {
+  const [quizzes, setQuizzes] = useState<QuizItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(quizStorageKey)
+      if (!raw) {
+        return initialQuizzes
+      }
+      const parsed = JSON.parse(raw) as QuizItem[]
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed
+      }
+      return initialQuizzes
+    } catch {
+      return initialQuizzes
+    }
+  })
+  const [query, setQuery] = useState('')
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [newModuleName, setNewModuleName] = useState('')
+  const [newDifficulty, setNewDifficulty] = useState<QuizDifficulty>('Grundlagen')
+  const [newTimed, setNewTimed] = useState(false)
+  const [newTimeLimit, setNewTimeLimit] = useState(10)
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(null)
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [score, setScore] = useState(0)
+  const [finished, setFinished] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(quizStorageKey, JSON.stringify(quizzes))
+  }, [quizzes])
+
+  const visibleQuizzes = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) {
+      return quizzes
+    }
+    return quizzes.filter((quizItem) =>
+      `${quizItem.title} ${quizItem.description} ${quizItem.moduleName}`
+        .toLowerCase()
+        .includes(normalized),
+    )
+  }, [quizzes, query])
+
+  const activeQuiz = useMemo(
+    () => (activeQuizId ? quizzes.find((entry) => entry.id === activeQuizId) ?? null : null),
+    [activeQuizId, quizzes],
+  )
+
+  const activeQuestion =
+    activeQuiz?.questions.length && activeQuestionIndex < activeQuiz.questions.length
+      ? activeQuiz.questions[activeQuestionIndex]
+      : null
+
+  function openQuiz(quizId: string) {
+    setActiveQuizId(quizId)
+    setActiveQuestionIndex(0)
+    setSelectedIndex(null)
+    setScore(0)
+    setFinished(false)
+  }
+
+  function answerQuestion(index: number) {
+    if (!activeQuestion || selectedIndex !== null || finished) {
+      return
+    }
+    setSelectedIndex(index)
+    if (index === activeQuestion.correctIndex) {
+      setScore((current) => current + 1)
+    }
+  }
+
+  function nextQuestion() {
+    if (!activeQuiz || !activeQuestion) {
+      return
+    }
+    if (activeQuestionIndex >= activeQuiz.questions.length - 1) {
+      setFinished(true)
+      return
+    }
+    setActiveQuestionIndex((current) => current + 1)
+    setSelectedIndex(null)
+  }
+
+  function createQuiz(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const title = newTitle.trim()
+    if (!title) {
+      return
+    }
+
+    const quizId = `quiz-${Date.now()}`
+    const questionBase = title.length > 0 ? title : 'Quiz'
+    const newQuiz: QuizItem = {
+      id: quizId,
+      title,
+      description: newDescription.trim(),
+      moduleName: newModuleName.trim(),
+      difficulty: newDifficulty,
+      timeLimitSeconds: newTimed ? Math.max(newTimeLimit, 1) * 60 : null,
+      questions: [
+        {
+          id: `${quizId}-q-1`,
+          question: `Was trifft auf "${questionBase}" zu?`,
+          options: ['Aussage A', 'Aussage B', 'Aussage C', 'Aussage D'],
+          correctIndex: 0,
+        },
+        {
+          id: `${quizId}-q-2`,
+          question: `Welche Antwort ist im Grundverständnis richtig?`,
+          options: ['Antwort A', 'Antwort B', 'Antwort C', 'Antwort D'],
+          correctIndex: 1,
+        },
+      ],
+    }
+
+    setQuizzes((current) => [newQuiz, ...current])
+    setIsCreateOpen(false)
+    setNewTitle('')
+    setNewDescription('')
+    setNewModuleName('')
+    setNewDifficulty('Grundlagen')
+    setNewTimed(false)
+    setNewTimeLimit(10)
+  }
+
+  if (activeQuiz) {
+    return (
+      <section className="summary-layout">
+        <div className="summary-detail-container">
+          <div className="module-view-header">
+            <div className="module-view-title-row">
+              <h2>{activeQuiz.title}</h2>
+              <p className="module-view-tag">
+                {activeQuiz.difficulty}
+                {activeQuiz.timeLimitSeconds ? ` · ${Math.round(activeQuiz.timeLimitSeconds / 60)} Min.` : ''}
+              </p>
+            </div>
+          </div>
+          <p>{activeQuiz.description || 'Kein Beschreibungstext hinterlegt.'}</p>
+          <div className="module-glass-card">
+            <h3>
+              Frage {Math.min(activeQuestionIndex + 1, activeQuiz.questions.length)} von{' '}
+              {activeQuiz.questions.length}
+            </h3>
+            {activeQuestion ? (
+              <>
+                <p>{activeQuestion.question}</p>
+                <div className="quiz-options">
+                  {activeQuestion.options.map((option, index) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`quiz-option-button ${
+                        selectedIndex !== null && index === activeQuestion.correctIndex
+                          ? 'is-correct'
+                          : selectedIndex === index
+                            ? 'is-selected'
+                            : ''
+                      }`}
+                      onClick={() => answerQuestion(index)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                <div className="detail-action-row">
+                  <button type="button" onClick={nextQuestion} disabled={selectedIndex === null && !finished}>
+                    {finished || activeQuestionIndex >= activeQuiz.questions.length - 1
+                      ? 'Ergebnis anzeigen'
+                      : 'Nächste Frage'}
+                  </button>
+                  <CloseIconButton onClick={() => setActiveQuizId(null)} />
+                </div>
+              </>
+            ) : null}
+          </div>
+          {finished && (
+            <p className="module-save-message">
+              Ergebnis: {score} / {activeQuiz.questions.length}
+            </p>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="summary-layout">
+      <div className="summary-list-container">
+        <p className="card-tag">Quizze</p>
+        <p>Erstelle Quizze, starte Versuche und prüfe deinen Lernstand.</p>
+        <label className="summary-search">
+          <span>Suche</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Quiz-Titel suchen..."
+          />
+        </label>
+        <ul className="module-title-list">
+          {visibleQuizzes.map((quizItem) => (
+            <li key={quizItem.id}>
+              <div className="module-list-content">
+                <span className="module-list-main">{quizItem.title}</span>
+                <span className="module-list-meta">
+                  {quizItem.difficulty}
+                  {quizItem.moduleName ? ` · Modul: ${quizItem.moduleName}` : ''}
+                  {quizItem.timeLimitSeconds ? ` · ${Math.round(quizItem.timeLimitSeconds / 60)} Min.` : ''}
+                </span>
+                <span className="module-card-preview">{quizItem.description || 'Kein Beschreibungstext.'}</span>
+              </div>
+              <div className="module-actions">
+                <button type="button" className="module-icon-button" onClick={() => openQuiz(quizItem.id)}>
+                  Start
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="summary-list-footer">
+          <button type="button" className="add-deck-button add-summary-button" onClick={() => setIsCreateOpen(true)}>
+            Quiz erstellen
+          </button>
+        </div>
+      </div>
+      {isCreateOpen && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-dialog">
+            <p>Neues Quiz erstellen</p>
+            <form className="quiz-create-form" onSubmit={createQuiz}>
+              <input
+                value={newTitle}
+                onChange={(event) => setNewTitle(event.target.value)}
+                placeholder="Titel"
+                required
+              />
+              <textarea
+                value={newDescription}
+                onChange={(event) => setNewDescription(event.target.value)}
+                placeholder="Beschreibung"
+                rows={3}
+              />
+              <input
+                value={newModuleName}
+                onChange={(event) => setNewModuleName(event.target.value)}
+                placeholder="Modulname (optional)"
+              />
+              <select
+                value={newDifficulty}
+                onChange={(event) => setNewDifficulty(event.target.value as QuizDifficulty)}
+              >
+                <option value="Grundlagen">Grundlagen</option>
+                <option value="Vertiefung">Vertiefung</option>
+                <option value="Prüfungsvorbereitung">Prüfungsvorbereitung</option>
+              </select>
+              <label className="quiz-timed-row">
+                <input
+                  type="checkbox"
+                  checked={newTimed}
+                  onChange={(event) => setNewTimed(event.target.checked)}
+                />
+                <span>Zeitlimit aktivieren</span>
+              </label>
+              {newTimed && (
+                <input
+                  type="number"
+                  min={1}
+                  value={newTimeLimit}
+                  onChange={(event) => setNewTimeLimit(Number(event.target.value))}
+                  placeholder="Minuten"
+                />
+              )}
+              <div className="confirm-actions">
+                <button type="button" className="confirm-cancel" onClick={() => setIsCreateOpen(false)}>
+                  Abbruch
+                </button>
+                <button type="submit" className="confirm-accept">
+                  Erstellen
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </section>
@@ -1411,6 +2031,17 @@ function SpielePage({ activeGameId }: { activeGameId?: string }) {
 
 function SummariesPage() {
   const [query, setQuery] = useState('')
+  const [fastSearchItems, setFastSearchItems] = useState<string[]>([
+    'BWP',
+    'Weiterbildung',
+    'Psychologie',
+    'Didaktik',
+    'SPSS',
+  ])
+  const [isFastSearchDialogOpen, setIsFastSearchDialogOpen] = useState(false)
+  const [newFastSearchLabel, setNewFastSearchLabel] = useState('')
+  const [isSavingFastSearch, setIsSavingFastSearch] = useState(false)
+  const [fastSearchError, setFastSearchError] = useState('')
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null)
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null)
   const [activePdfModuleId, setActivePdfModuleId] = useState<string | null>(null)
@@ -1419,11 +2050,15 @@ function SummariesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [isDeletingModule, setIsDeletingModule] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [savePopup, setSavePopup] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null,
   )
   const [apiOffset, setApiOffset] = useState(0)
   const [hasMoreModules, setHasMoreModules] = useState(true)
+  const [favoriteModuleIds, setFavoriteModuleIds] = useState<string[]>([])
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false)
+  const [isPdfDropActive, setIsPdfDropActive] = useState(false)
   const [pdfMap, setPdfMap] = useState<Record<string, ModulePdf[]>>(initialModulePdfs)
   const [moduleDraftMap, setModuleDraftMap] =
     useState<Record<string, ModuleSummary>>(createModuleDraftMap)
@@ -1470,6 +2105,89 @@ function SummariesPage() {
   useEffect(() => {
     localStorage.setItem(moduleDraftStorageKey, JSON.stringify(moduleDraftMap))
   }, [moduleDraftMap])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(favoriteModuleStorageKey)
+      if (!raw) {
+        return
+      }
+      const parsed = JSON.parse(raw) as string[]
+      if (Array.isArray(parsed)) {
+        setFavoriteModuleIds(parsed.filter((entry): entry is string => typeof entry === 'string'))
+      }
+    } catch {
+      setFavoriteModuleIds([])
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(favoriteModuleStorageKey, JSON.stringify(favoriteModuleIds))
+  }, [favoriteModuleIds])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch(`${apiBase}/content/modules/fast-search?scope=summaries`, {
+          credentials: 'include',
+        })
+        if (!response.ok) {
+          return
+        }
+        const payload = (await response.json()) as { id: string; label: string }[]
+        if (!Array.isArray(payload)) {
+          return
+        }
+        setFastSearchItems((current) => {
+          const labels = new Set(current)
+          payload.forEach((item) => {
+            if (item.label && !labels.has(item.label)) {
+              labels.add(item.label)
+            }
+          })
+          return Array.from(labels)
+        })
+      } catch {
+        // ignore
+      }
+    })()
+  }, [])
+
+  async function saveFastSearchLabel() {
+    const label = newFastSearchLabel.trim()
+    if (!label) {
+      setFastSearchError('Bitte ein Wort eingeben.')
+      return
+    }
+    if (fastSearchItems.includes(label)) {
+      setFastSearchError('Dieses Fast-Search Wort ist bereits vorhanden.')
+      return
+    }
+
+    setIsSavingFastSearch(true)
+    setFastSearchError('')
+    try {
+      const response = await fetch(`${apiBase}/content/modules/fast-search/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ label, scope: 'summaries' }),
+      })
+      const payload = (await response.json()) as { saved?: boolean }
+      if (!response.ok || !payload.saved) {
+        throw new Error('Fast-Search Wort konnte nicht gespeichert werden.')
+      }
+      setFastSearchItems((current) => [...current, label])
+      setNewFastSearchLabel('')
+      setIsFastSearchDialogOpen(false)
+    } catch {
+      setFastSearchError('Fast-Search Wort konnte nicht gespeichert werden.')
+    } finally {
+      setIsSavingFastSearch(false)
+    }
+  }
 
   async function loadMoreModules() {
     if (isLoadingMore || !hasMoreModules) {
@@ -1520,14 +2238,27 @@ function SummariesPage() {
 
   const visibleModules = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    const modules = Object.values(moduleDraftMap)
+    const favoriteSet = new Set(favoriteModuleIds)
+    let modules = Object.values(moduleDraftMap)
+    if (showOnlyFavorites) {
+      modules = modules.filter((moduleItem) => favoriteSet.has(moduleItem.id))
+    }
     if (!normalized) {
       return modules
     }
     return modules.filter((moduleItem) =>
       moduleItem.name.toLowerCase().includes(normalized),
     )
-  }, [moduleDraftMap, query])
+  }, [moduleDraftMap, query, favoriteModuleIds, showOnlyFavorites])
+
+  function toggleFavoriteModule(moduleId: string) {
+    setFavoriteModuleIds((current) => {
+      if (current.includes(moduleId)) {
+        return current.filter((entry) => entry !== moduleId)
+      }
+      return [...current, moduleId]
+    })
+  }
 
   const activeModule = useMemo(
     () =>
@@ -1653,13 +2384,30 @@ function SummariesPage() {
     }
   }
 
-  function handlePdfUpload(moduleId: string, event: ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files
-    if (!files?.length) {
+  async function confirmDeleteModule() {
+    if (!confirmDeleteId) {
+      return
+    }
+    await deleteModule(confirmDeleteId)
+    setConfirmDeleteId(null)
+  }
+
+  function appendPdfFiles(moduleId: string, files: File[]) {
+    if (!files.length) {
       return
     }
 
-    const additions = Array.from(files).map((file) => ({
+    const validFiles = files.filter(
+      (file) =>
+        file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'),
+    )
+
+    if (!validFiles.length) {
+      setSaveMessage('Nur PDF-Dateien sind erlaubt.')
+      return
+    }
+
+    const additions = validFiles.map((file) => ({
       id: `${moduleId}-${Date.now()}-${file.name}`,
       fileName: file.name,
       uploadedAt: new Date().toISOString().slice(0, 10),
@@ -1670,8 +2418,23 @@ function SummariesPage() {
       ...current,
       [moduleId]: [...(current[moduleId] ?? []), ...additions],
     }))
+    setSaveMessage(`${validFiles.length} PDF-Datei(en) hinzugefügt.`)
+  }
 
+  function handlePdfUpload(moduleId: string, event: ChangeEvent<HTMLInputElement>) {
+    const files = event.target.files
+    if (!files?.length) {
+      return
+    }
+    appendPdfFiles(moduleId, Array.from(files))
     event.target.value = ''
+  }
+
+  function handlePdfDrop(moduleId: string, event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsPdfDropActive(false)
+    const files = Array.from(event.dataTransfer.files ?? [])
+    appendPdfFiles(moduleId, files)
   }
 
   function handlePdfDownload(moduleId: string, pdfItem: ModulePdf) {
@@ -1723,11 +2486,11 @@ function SummariesPage() {
   const saveModuleToDatabase = useCallback(
     async (mode: 'manual' | 'auto') => {
       if (!editingModuleId) {
-        return
+        return false
       }
       const moduleEntry = moduleDraftMap[editingModuleId]
       if (!moduleEntry) {
-        return
+        return false
       }
 
       if (mode === 'manual') {
@@ -1745,7 +2508,7 @@ function SummariesPage() {
               text: 'Speichern konnte nicht durchgeführt werden',
             })
             setIsSaving(false)
-            return
+            return false
           }
           const statusPayload = (await statusResponse.json()) as { connected?: boolean }
           if (!statusPayload.connected) {
@@ -1754,7 +2517,7 @@ function SummariesPage() {
               text: 'Speichern konnte nicht durchgeführt werden',
             })
             setIsSaving(false)
-            return
+            return false
           }
         } catch {
           setSavePopup({
@@ -1762,7 +2525,7 @@ function SummariesPage() {
             text: 'Speichern konnte nicht durchgeführt werden',
           })
           setIsSaving(false)
-          return
+          return false
         }
       }
 
@@ -1806,10 +2569,12 @@ function SummariesPage() {
             text: 'Speichern erfolgreich durchgeführt.',
           })
         }
+        return true
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Speichern fehlgeschlagen.'
         setSaveMessage(message)
+        return false
       } finally {
         if (mode === 'manual') {
           setIsSaving(false)
@@ -1834,27 +2599,72 @@ function SummariesPage() {
   return (
     <section className="summary-layout">
       <div className="summary-list-container">
-        <p className="card-tag">Modul-Liste</p>
-        <p>In der Liste siehst du die Modultitel und öffnest die Ansicht per Button.</p>
-        <button
-          type="button"
-          className="add-deck-button add-summary-button"
-          onClick={createNewSummary}
-        >
-          Neue Zusammenfassung
-        </button>
+        <p className="card-tag">Alle Zusammenfassungen</p>
+        <p>Füge Favoriten hinzu, oder suche in der Leiste</p>
         <label className="summary-search">
-          <span>Suche</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Modul-Titel suchen..."
-          />
+          <div className="summary-search-controls">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Modul-Titel suchen..."
+            />
+            <button
+              type="button"
+              className={`favorites-filter-button ${showOnlyFavorites ? 'is-active' : ''}`}
+              onClick={() => setShowOnlyFavorites((current) => !current)}
+              aria-label="Nur Favoriten anzeigen"
+              title="Nur Favoriten anzeigen"
+            >
+              ★ Favoriten anzeigen
+            </button>
+            <button
+              type="button"
+              className="add-deck-button add-summary-button"
+              onClick={createNewSummary}
+            >
+              + Zusammenfassung
+            </button>
+          </div>
         </label>
+        <div className="fast-search-row">
+          <button
+            type="button"
+            className="fast-search-add-button"
+            onClick={() => {
+              setIsFastSearchDialogOpen(true)
+              setFastSearchError('')
+            }}
+            aria-label="Fast-Search hinzufügen"
+            title="Fast-Search hinzufügen"
+          >
+            +
+          </button>
+          {fastSearchItems.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className="fast-search-chip"
+              onClick={() => setQuery(label)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <ul className="module-title-list">
           {visibleModules.map((moduleItem) => (
             <li key={moduleItem.id}>
+              <button
+                type="button"
+                className={`module-card-favorite-corner ${
+                  favoriteModuleIds.includes(moduleItem.id) ? 'is-active' : ''
+                }`}
+                onClick={() => toggleFavoriteModule(moduleItem.id)}
+                title="Favorisieren"
+                aria-label="Favorisieren"
+              >
+                {favoriteModuleIds.includes(moduleItem.id) ? '★' : '☆'}
+              </button>
               <div className="module-list-content">
                 <span className="module-list-main">{moduleItem.name}</span>
                 <span className="module-list-meta">
@@ -1868,7 +2678,7 @@ function SummariesPage() {
               <div className="module-actions">
                 <button
                   type="button"
-                  className="module-icon-button"
+                  className="module-icon-button module-eye-button"
                   onClick={() => openModuleView(moduleItem.id)}
                   title="Anschauen"
                   aria-label="Anschauen"
@@ -1896,7 +2706,7 @@ function SummariesPage() {
                 <button
                   type="button"
                   className="module-delete-button"
-                  onClick={() => void deleteModule(moduleItem.id)}
+                  onClick={() => setConfirmDeleteId(moduleItem.id)}
                   title="Zusammenfassung löschen"
                   aria-label="Zusammenfassung löschen"
                 >
@@ -1906,15 +2716,17 @@ function SummariesPage() {
             </li>
           ))}
         </ul>
-        {hasMoreModules && (
-          <button
-            type="button"
-            className="load-more-button"
-            onClick={() => void loadMoreModules()}
-          >
-            {isLoadingMore ? 'Lädt…' : 'Mehr Anzeigen'}
-          </button>
-        )}
+        <div className="summary-list-footer">
+          {hasMoreModules && (
+            <button
+              type="button"
+              className="load-more-button"
+              onClick={() => void loadMoreModules()}
+            >
+              {isLoadingMore ? 'Lädt…' : 'Mehr Anzeigen'}
+            </button>
+          )}
+        </div>
       </div>
 
       {isDetailVisible && (
@@ -1922,8 +2734,10 @@ function SummariesPage() {
           {activePdfModule ? (
           <>
             <div className="module-view-header">
-              <h2>{activePdfModule.name}</h2>
-              <p className="module-view-tag">PDF-Container</p>
+              <div className="module-view-title-row">
+                <h2>{activePdfModule.name}</h2>
+                <p className="module-view-tag">PDF-Container</p>
+              </div>
             </div>
             <p>Jedes Modul hat seinen eigenen PDF-Bereich mit Upload und Download.</p>
             <label className="pdf-upload-control">
@@ -1935,6 +2749,17 @@ function SummariesPage() {
                 onChange={(event) => handlePdfUpload(activePdfModule.id, event)}
               />
             </label>
+            <div
+              className={`pdf-dropzone ${isPdfDropActive ? 'is-active' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setIsPdfDropActive(true)
+              }}
+              onDragLeave={() => setIsPdfDropActive(false)}
+              onDrop={(event) => handlePdfDrop(activePdfModule.id, event)}
+            >
+              PDF per Drag & Drop hier ablegen
+            </div>
             <ul className="pdf-list">
               {(pdfMap[activePdfModule.id] ?? []).map((pdfItem) => (
                 <li key={pdfItem.id}>
@@ -1952,7 +2777,7 @@ function SummariesPage() {
                       title="Download"
                       aria-label="Download"
                     >
-                      ⬇
+                      <span className="download-arrow">⬇</span>
                     </button>
                     <button
                       type="button"
@@ -1974,8 +2799,10 @@ function SummariesPage() {
           ) : activeModule ? (
           <>
             <div className="module-view-header">
-              <h2>{activeModule.name}</h2>
-              <p className="module-view-tag">Thema: {activeModule.theme || '—'}</p>
+              <div className="module-view-title-row">
+                <h2>{activeModule.name}</h2>
+                <p className="module-view-tag">Thema: {activeModule.theme || '—'}</p>
+              </div>
             </div>
             <div className="module-glass-card">
               <h3>Einführung</h3>
@@ -2004,6 +2831,7 @@ function SummariesPage() {
           </>
           ) : editingModule ? (
           <>
+            <h3 className="edit-view-title">Bearbeitungsansicht</h3>
             <div className="module-view-header">
               {isEditEnabled ? (
                 <div className="module-edit-head-fields">
@@ -2030,20 +2858,38 @@ function SummariesPage() {
                   </label>
                 </div>
               ) : (
-                <div>
+                <div className="module-view-title-row">
                   <h2>{editingModule.name}</h2>
                   <p className="module-view-tag">Thema: {editingModule.theme || '—'}</p>
                 </div>
               )}
-              <button
-                type="button"
-                className={`edit-toggle-button ${isEditEnabled ? 'is-active' : ''}`}
-                onClick={() => setIsEditEnabled((current) => !current)}
-                aria-label="Bearbeitungsmodus umschalten"
-                title="Bearbeitungsmodus"
-              >
-                ⚙
-              </button>
+              <div className="edit-toggle-stack">
+                <button
+                  type="button"
+                  className={`edit-toggle-button ${isEditEnabled ? 'is-active' : ''}`}
+                  onClick={() => setIsEditEnabled((current) => !current)}
+                  aria-label="Bearbeitungsmodus umschalten"
+                  title="Bearbeitungsmodus"
+                >
+                  ⚙
+                </button>
+                {isEditEnabled && (
+                  <button
+                    type="button"
+                    className="edit-complete-button"
+                    onClick={async () => {
+                      const saved = await saveModuleToDatabase('manual')
+                      if (saved) {
+                        setIsEditEnabled(false)
+                      }
+                    }}
+                    aria-label="Bearbeitung speichern und beenden"
+                    title="Bearbeitung speichern und beenden"
+                  >
+                    ✓
+                  </button>
+                )}
+              </div>
             </div>
             <div className="module-glass-card">
               <h3>Einführung</h3>
@@ -2115,6 +2961,56 @@ function SummariesPage() {
             )}
           </>
           ) : null}
+        </div>
+      )}
+      {confirmDeleteId && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-dialog">
+            <p>Bist du dir wirklich sicher, dass du das löschen möchtest?</p>
+            <div className="confirm-actions">
+              <button type="button" className="confirm-cancel" onClick={() => setConfirmDeleteId(null)}>
+                Abbruch
+              </button>
+              <button type="button" className="confirm-accept" onClick={() => void confirmDeleteModule()}>
+                Bestätige
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isFastSearchDialogOpen && (
+        <div className="confirm-overlay fast-search-overlay" role="dialog" aria-modal="true">
+          <div className="confirm-dialog fast-search-dialog">
+            <p>Neues Fast-Search Wort hinzufügen</p>
+            <input
+              type="text"
+              value={newFastSearchLabel}
+              onChange={(event) => setNewFastSearchLabel(event.target.value)}
+              placeholder="Fast-Search Wort"
+            />
+            {fastSearchError && <p className="module-save-message">{fastSearchError}</p>}
+            <div className="confirm-actions">
+              <button
+                type="button"
+                className="confirm-cancel"
+                onClick={() => {
+                  setIsFastSearchDialogOpen(false)
+                  setNewFastSearchLabel('')
+                  setFastSearchError('')
+                }}
+              >
+                Abbruch
+              </button>
+              <button
+                type="button"
+                className="fast-search-confirm-button"
+                onClick={() => void saveFastSearchLabel()}
+                disabled={isSavingFastSearch}
+              >
+                {isSavingFastSearch ? 'Speichert...' : 'Bestätigen'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>
@@ -2208,6 +3104,7 @@ function App() {
           <Route path="/start" element={<StartPage />} />
           <Route path="/zusammenfassungen" element={<SummariesPage />} />
           <Route path="/karteikarten" element={<FlashcardsPage />} />
+          <Route path="/quiz" element={<QuizPage />} />
           <Route path="/spiele" element={<SpielePage />} />
           <Route path="/spiele/pulse" element={<SpielePage activeGameId="pulse" />} />
           <Route path="/spiele/realm-builder" element={<SpielePage activeGameId="realm-builder" />} />

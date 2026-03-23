@@ -11,6 +11,7 @@ create table if not exists public.flashcard_decks (
 create table if not exists public.flashcard_cards (
   card_id text primary key,
   deck_id text not null references public.flashcard_decks(deck_id) on delete cascade,
+  card_title text not null default '',
   front text not null,
   back text not null,
   position integer not null default 0,
