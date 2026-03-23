@@ -1,0 +1,27 @@
+:root {
+  --bordeaux: #6f001e;
+  --bordeaux-dark: #490014;
+  --white: #ffffff;
+  --line: #e7d7dc;
+  --paper: #fff7f9;
+  --neon: #ff1744;
+  --neon-soft: #ffd6df;
+  --neon-deep: #b1002a;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 15% 10%, #ffe1e8 0, #fff 45%, #fff 100%);
+  color: #171316;
+}
+
+#root {
+  min-height: 100svh;
+}
