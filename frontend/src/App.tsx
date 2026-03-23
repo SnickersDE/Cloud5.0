@@ -659,10 +659,6 @@ function StartPage() {
 
 function HeroLoopVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const reverseRef = useRef(false)
-  const frameRef = useRef<number | null>(null)
-  const lastTimestampRef = useRef<number | null>(null)
-  const reverseSpeedRef = useRef(0.5)
 
   useEffect(() => {
     const video = videoRef.current
@@ -671,53 +667,10 @@ function HeroLoopVideo() {
     }
 
     video.playbackRate = 0.5
-
-    const playForward = () => {
-      reverseRef.current = false
-      video.playbackRate = 0.5
-      void video.play()
-    }
-
-    const runBackward = () => {
-      reverseRef.current = true
-      video.pause()
-      lastTimestampRef.current = null
-
-      const step = (timestamp: number) => {
-        if (!videoRef.current || !reverseRef.current) {
-          return
-        }
-        const previous = lastTimestampRef.current ?? timestamp
-        const deltaSeconds = Math.max((timestamp - previous) / 1000, 0)
-        lastTimestampRef.current = timestamp
-        const stepAmount = deltaSeconds * reverseSpeedRef.current
-        const next = Math.max(videoRef.current.currentTime - stepAmount, 0)
-        videoRef.current.currentTime = next
-        if (next <= 0) {
-          reverseRef.current = false
-          lastTimestampRef.current = null
-          videoRef.current.playbackRate = 0.5
-          void videoRef.current.play()
-          return
-        }
-        frameRef.current = window.requestAnimationFrame(step)
-      }
-
-      frameRef.current = window.requestAnimationFrame(step)
-    }
-
-    const handleEnded = () => {
-      runBackward()
-    }
-
-    video.addEventListener('ended', handleEnded)
-    playForward()
+    void video.play()
 
     return () => {
-      video.removeEventListener('ended', handleEnded)
-      if (frameRef.current) {
-        window.cancelAnimationFrame(frameRef.current)
-      }
+      video.pause()
     }
   }, [])
 
@@ -730,6 +683,7 @@ function HeroLoopVideo() {
       src={videoSrc}
       muted
       playsInline
+      loop
       preload="auto"
     />
   )
