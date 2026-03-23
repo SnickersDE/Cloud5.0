@@ -2169,30 +2169,30 @@ function App() {
               <img src={entranceIcon} alt="Eingang" className="entrance-icon" />
             </NavLink>
           </div>
-        </header>
 
-        <nav className="main-nav">
-          {dropdownGroups.map((group) => (
-            <div
-              key={group.label}
-              className={`nav-group ${
-                group.entries.some((entry) => location.pathname.startsWith(entry.to)) ? 'active' : ''
-              }`}
-            >
-              <span className="nav-group-label">{group.label}</span>
-              <div className="nav-dropdown">
-                {group.entries.map((entry) => (
-                  <NavLink key={entry.to} to={entry.to} className="nav-dropdown-link">
-                    <span className="nav-dropdown-icon" aria-hidden="true">
-                      {entry.icon}
-                    </span>
-                    <span className="nav-dropdown-text">{entry.label}</span>
-                  </NavLink>
-                ))}
+          <nav className="main-nav">
+            {dropdownGroups.map((group) => (
+              <div
+                key={group.label}
+                className={`nav-group ${
+                  group.entries.some((entry) => location.pathname.startsWith(entry.to)) ? 'active' : ''
+                }`}
+              >
+                <span className="nav-group-label">{group.label}</span>
+                <div className="nav-dropdown">
+                  {group.entries.map((entry) => (
+                    <NavLink key={entry.to} to={entry.to} className="nav-dropdown-link">
+                      <span className="nav-dropdown-icon" aria-hidden="true">
+                        {entry.icon}
+                      </span>
+                      <span className="nav-dropdown-text">{entry.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </nav>
+            ))}
+          </nav>
+        </header>
       </div>
 
       <main className="content-area">

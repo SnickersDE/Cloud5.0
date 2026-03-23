@@ -37,6 +37,8 @@
   padding: 1.1rem 1.3rem 1rem;
   border-bottom: 1px solid rgba(31, 91, 255, 0.38);
   z-index: 81;
+  display: grid;
+  gap: 0.45rem;
 }
 
 .top-header::after {
@@ -64,10 +66,10 @@
   position: absolute;
   left: -1.2rem;
   top: 50%;
-  width: clamp(14rem, 33vw, 21rem);
-  height: 1.1rem;
+  width: clamp(56rem, 88vw, 82rem);
+  height: 5.2rem;
   background: rgba(255, 255, 255, 0.95);
-  transform: translateY(0.72rem) rotate(-45deg);
+  transform: translateY(1.55rem) rotate(-45deg);
   transform-origin: left center;
   pointer-events: none;
   z-index: 1;
@@ -151,10 +153,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  padding: 0.75rem 1rem;
+  padding: 0.2rem 0.5rem 0.1rem;
   overflow: visible;
   border-bottom: none;
-  background: #050507;
+  background: transparent;
   backdrop-filter: none;
   position: relative;
   z-index: 82;
@@ -1408,9 +1410,9 @@
 
   .header-angled-strip {
     left: -1rem;
-    width: clamp(9.8rem, 45vw, 13rem);
-    height: 0.72rem;
-    transform: translateY(0.55rem) rotate(-45deg);
+    width: clamp(26rem, 130vw, 44rem);
+    height: 2.8rem;
+    transform: translateY(1.1rem) rotate(-45deg);
   }
 
   .main-nav {
